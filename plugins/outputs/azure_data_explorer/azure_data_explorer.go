@@ -90,13 +90,12 @@ func (adx *AzureDataExplorer) Close() error {
 	adx.client = nil
 	adx.ingestors = nil
 
-	if len(errs) == 0 {
-		adx.Log.Info("Closed ingestors and client")
-		return nil
+	if len(errs) > 0 {
+		// Combine errors into a single object and return the combined error
+		return kustoerrors.GetCombinedError(errs...)
 	}
-
-	// Combine errors into a single object and return the combined error
-	return kustoerrors.GetCombinedError(errs...)
+	adx.Log.Info("Closed ingestors and client")
+	return nil
 }
 
 func (adx *AzureDataExplorer) Write(metrics []telegraf.Metric) error {
@@ -163,7 +162,7 @@ func (adx *AzureDataExplorer) pushMetrics(ctx context.Context, format ingest.Fil
 		return err
 	}
 	length := len(metricsArray)
-	adx.Log.Debugf("Metrics array length %d for table %s", length, tableName)
+	adx.Log.Debugf("Writing %s metrics to table %q", length, tableName)
 	reader := bytes.NewReader(metricsArray)
 	mapping := ingest.IngestionMappingRef(fmt.Sprintf("%s_mapping", tableName), ingest.JSON)
 	if _, err := ingestor.FromReader(ctx, reader, format, mapping); err != nil {
