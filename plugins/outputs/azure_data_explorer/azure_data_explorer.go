@@ -14,7 +14,6 @@ import (
 	kustoerrors "github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
 	"github.com/Azure/azure-kusto-go/kusto/unsafe"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
@@ -64,14 +63,16 @@ func (*AzureDataExplorer) SampleConfig() string {
 
 // Initialize the client and the ingestor
 func (adx *AzureDataExplorer) Connect() error {
-	authorizer, err := auth.NewAuthorizerFromEnvironmentWithResource(adx.Endpoint)
+	/*authorizer, err := auth.NewAuthorizerFromEnvironmentWithResource(adx.Endpoint)
 	if err != nil {
 		return err
 	}
 	authorization := kusto.Authorization{
 		Authorizer: authorizer,
-	}
-	client, err := kusto.New(adx.Endpoint, authorization)
+	}*/
+	kcsb := kusto.NewConnectionStringBuilder(adx.Endpoint).WithDefaultAzureCredential()
+
+	client, err := kusto.New(kcsb)
 
 	if err != nil {
 		return err
