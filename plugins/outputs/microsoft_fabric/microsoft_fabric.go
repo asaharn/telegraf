@@ -4,7 +4,6 @@ package microsoft_fabric
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -50,7 +49,7 @@ func (m *MicrosoftFabric) Init() error {
 	ConnectionString := m.ConnectionString
 
 	if ConnectionString == "" {
-		return errors.New("endpoint must not be empty")
+		return errors.New("endpoint must not be empty. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventStream refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
 
 	if strings.HasPrefix(ConnectionString, "Endpoint=sb") {
@@ -59,13 +58,15 @@ func (m *MicrosoftFabric) Init() error {
 		m.EHConf.Log = m.Log
 		m.EHConf.Init()
 		m.FabricSinkService = m.EHConf
-	} else {
+	} else if strings.HasPrefix(ConnectionString, "https://") {
 		m.Log.Info("Detected Kusto endpoint, using Kusto output plugin")
 		//Setting up the AzureDataExplorer plugin initial properties
 		m.ADXConf.Endpoint = ConnectionString
 		m.ADXConf.Log = m.Log
 		m.ADXConf.Init()
 		m.FabricSinkService = m.ADXConf
+	} else {
+		return errors.New("invalid connection string. Connection string must start with 'Endpoint=sb' for EventHub or 'https://' for Kusto")
 	}
 	return nil
 }
