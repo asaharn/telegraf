@@ -49,16 +49,16 @@ func (m *MicrosoftFabric) Init() error {
 	ConnectionString := m.ConnectionString
 
 	if ConnectionString == "" {
-		return errors.New("endpoint must not be empty. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventStream refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
+		return errors.New("endpoint must not be empty. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
 
 	if strings.HasPrefix(ConnectionString, "Endpoint=sb") {
-		m.Log.Info("Detected EventHub endpoint, using EventHub output plugin")
+		m.Log.Info("Detected EventHouse endpoint, using EventHouse output plugin")
 		m.EHConf.ConnectionString = ConnectionString
 		m.EHConf.Log = m.Log
 		m.EHConf.Init()
 		m.FabricSinkService = m.EHConf
-	} else if strings.HasPrefix(ConnectionString, "https://") {
+	} else if isKustoEndpoint(strings.ToLower(ConnectionString)) {
 		m.Log.Info("Detected Kusto endpoint, using Kusto output plugin")
 		//Setting up the AzureDataExplorer plugin initial properties
 		m.ADXConf.Endpoint = ConnectionString
@@ -66,9 +66,27 @@ func (m *MicrosoftFabric) Init() error {
 		m.ADXConf.Init()
 		m.FabricSinkService = m.ADXConf
 	} else {
-		return errors.New("invalid connection string. Connection string must start with 'Endpoint=sb' for EventHub or 'https://' for Kusto")
+		return errors.New("invalid connection string. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
 	return nil
+}
+
+func isKustoEndpoint(endpoint string) bool {
+	prefixes := []string{
+		"https://",
+		"data source=",
+		"addr=",
+		"address=",
+		"network address=",
+		"server=",
+	}
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(endpoint, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {
