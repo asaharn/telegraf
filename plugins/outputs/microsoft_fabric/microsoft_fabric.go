@@ -12,6 +12,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/outputs"
 	ADX "github.com/influxdata/telegraf/plugins/outputs/azure_data_explorer"
 	EH "github.com/influxdata/telegraf/plugins/outputs/event_hubs"
+	"github.com/influxdata/telegraf/plugins/serializers/json"
 )
 
 //go:embed sample.conf
@@ -54,8 +55,15 @@ func (m *MicrosoftFabric) Init() error {
 
 	if strings.HasPrefix(ConnectionString, "Endpoint=sb") {
 		m.Log.Info("Detected EventHouse endpoint, using EventHouse output plugin")
+
+		//Need discussion on it
+		serializer := &json.Serializer{
+			TimestampUnits:  config.Duration(time.Nanosecond),
+			TimestampFormat: time.RFC3339Nano,
+		}
 		m.EHConf.ConnectionString = ConnectionString
 		m.EHConf.Log = m.Log
+		m.EHConf.SetSerializer(serializer)
 		m.EHConf.Init()
 		m.FabricSinkService = m.EHConf
 	} else if isKustoEndpoint(strings.ToLower(ConnectionString)) {
@@ -73,7 +81,6 @@ func (m *MicrosoftFabric) Init() error {
 
 func isKustoEndpoint(endpoint string) bool {
 	prefixes := []string{
-		"https://",
 		"data source=",
 		"addr=",
 		"address=",
@@ -98,6 +105,7 @@ func init() {
 				CreateTables: true,
 			},
 			EHConf: &EH.EventHubs{
+				Hub:     &eventHub{},
 				Timeout: config.Duration(30 * time.Second),
 			},
 		}
