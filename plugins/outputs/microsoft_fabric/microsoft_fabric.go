@@ -103,6 +103,7 @@ func init() {
 			ADXConf: &ADX.AzureDataExplorer{
 				Timeout:      config.Duration(20 * time.Second),
 				CreateTables: true,
+				AppName:      "Fabric.Telegraf",
 			},
 			EHConf: &EH.EventHubs{
 				Hub:     &eventHub{},
