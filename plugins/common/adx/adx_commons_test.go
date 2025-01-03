@@ -137,19 +137,13 @@ func TestWrite(t *testing.T) {
 				require.EqualError(t, errorInWrite, tC.expectedWriteError)
 			} else {
 				require.NoError(t, errorInWrite)
-
 				expectedNameOfMetric := tC.expected["metricName"].(string)
-
 				createdFakeIngestor := localFakeIngestor
-
 				require.Equal(t, expectedNameOfMetric, createdFakeIngestor.actualOutputMetric["name"])
-
 				expectedFields := tC.expected["fields"].(map[string]interface{})
 				require.Equal(t, expectedFields, createdFakeIngestor.actualOutputMetric["fields"])
-
 				expectedTags := tC.expected["tags"].(map[string]interface{})
 				require.Equal(t, expectedTags, createdFakeIngestor.actualOutputMetric["tags"])
-
 				expectedTime := tC.expected["timestamp"].(float64)
 				require.InDelta(t, expectedTime, createdFakeIngestor.actualOutputMetric["timestamp"], testutil.DefaultDelta)
 			}

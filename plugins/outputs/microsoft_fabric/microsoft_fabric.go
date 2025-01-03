@@ -21,8 +21,8 @@ var sampleConfig string
 type MicrosoftFabric struct {
 	ConnectionString  string                         `toml:"connection_string"`
 	Log               telegraf.Logger                `toml:"-"`
-	ADXConf           *adx_commons.AzureDataExplorer `toml:"adx_conf"`
-	EHConf            *eh_commons.EventHubs          `toml:"eh_conf"`
+	EventHouseConf    *adx_commons.AzureDataExplorer `toml:"eh_conf"`
+	EventStreamConf   *eh_commons.EventHubs          `toml:"es_conf"`
 	FabricSinkService telegraf.Output
 }
 
@@ -50,7 +50,7 @@ func (m *MicrosoftFabric) Init() error {
 	ConnectionString := m.ConnectionString
 
 	if ConnectionString == "" {
-		return errors.New("endpoint must not be empty. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
+		return errors.New("endpoint must not be empty. For Eventhouse refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric .For Eventstream refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
 
 	if strings.HasPrefix(ConnectionString, "Endpoint=sb") {
@@ -61,18 +61,18 @@ func (m *MicrosoftFabric) Init() error {
 			TimestampUnits:  config.Duration(time.Nanosecond),
 			TimestampFormat: time.RFC3339Nano,
 		}
-		m.EHConf.ConnectionString = ConnectionString
-		m.EHConf.Log = m.Log
-		m.EHConf.SetSerializer(serializer)
-		m.EHConf.Init()
-		m.FabricSinkService = m.EHConf
+		m.EventStreamConf.ConnectionString = ConnectionString
+		m.EventStreamConf.Log = m.Log
+		m.EventStreamConf.SetSerializer(serializer)
+		m.EventStreamConf.Init()
+		m.FabricSinkService = m.EventStreamConf
 	} else if isKustoEndpoint(strings.ToLower(ConnectionString)) {
 		m.Log.Info("Detected Kusto endpoint, using Kusto output plugin")
 		//Setting up the AzureDataExplorer plugin initial properties
-		m.ADXConf.Endpoint = ConnectionString
-		m.ADXConf.Log = m.Log
-		m.ADXConf.Init()
-		m.FabricSinkService = m.ADXConf
+		m.EventHouseConf.Endpoint = ConnectionString
+		m.EventHouseConf.Log = m.Log
+		m.EventHouseConf.Init()
+		m.FabricSinkService = m.EventHouseConf
 	} else {
 		return errors.New("invalid connection string. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
@@ -100,12 +100,12 @@ func init() {
 
 	outputs.Add("microsoft_fabric", func() telegraf.Output {
 		return &MicrosoftFabric{
-			ADXConf: &adx_commons.AzureDataExplorer{
+			EventHouseConf: &adx_commons.AzureDataExplorer{
 				Timeout:      config.Duration(20 * time.Second),
 				CreateTables: true,
 				AppName:      "Fabric.Telegraf",
 			},
-			EHConf: &eh_commons.EventHubs{
+			EventStreamConf: &eh_commons.EventHubs{
 				Hub:     &eh_commons.EventHub{},
 				Timeout: config.Duration(30 * time.Second),
 			},

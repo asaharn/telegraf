@@ -156,8 +156,8 @@ func TestMicrosoftFabric_Init(t *testing.T) {
 			mf := &MicrosoftFabric{
 				ConnectionString: tt.connectionString,
 				Log:              testutil.Logger{},
-				ADXConf:          &adx_commons.AzureDataExplorer{},
-				EHConf: &eh_commons.EventHubs{
+				EventHouseConf:   &adx_commons.AzureDataExplorer{},
+				EventStreamConf: &eh_commons.EventHubs{
 					Hub:     &eh_commons.EventHub{},
 					Timeout: config.Duration(30 * time.Second),
 				},
