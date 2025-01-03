@@ -21,8 +21,11 @@ const (
 	defaultRequestTimeout = time.Second * 30
 )
 
+//go:embed sample.conf
+var sampleConfig string
+
 func (e *EventHubs) SampleConfig() string {
-	return e.EventHubs.SampleConfig()
+	return sampleConfig
 }
 
 func (e *EventHubs) Init() error {

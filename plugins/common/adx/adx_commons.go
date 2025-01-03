@@ -3,7 +3,6 @@ package adx_commons
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
@@ -213,7 +212,6 @@ func (adx *AzureDataExplorer) createAzureDataExplorerTable(ctx context.Context, 
 }
 
 func (adx *AzureDataExplorer) Init() error {
-
 	if adx.Endpoint == "" {
 		return errors.New("endpoint configuration cannot be empty")
 	}

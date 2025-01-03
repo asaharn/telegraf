@@ -63,7 +63,6 @@ func TestInitAndWrite(t *testing.T) {
 	mockHub.On("SendBatch", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	require.NoError(t, e.Write(metrics))
 	mockHub.AssertExpectations(t)
-
 }
 
 /*

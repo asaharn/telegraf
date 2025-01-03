@@ -47,34 +47,45 @@ func (m *MicrosoftFabric) Write(metrics []telegraf.Metric) error {
 }
 
 func (m *MicrosoftFabric) Init() error {
-	ConnectionString := m.ConnectionString
+	connectionString := m.ConnectionString
 
-	if ConnectionString == "" {
-		return errors.New("endpoint must not be empty. For Eventhouse refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric .For Eventstream refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
+	if connectionString == "" {
+		return errors.New("endpoint must not be empty. For Eventhouse refer : " +
+			" https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric." +
+			"For Eventstream refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources" +
+			"?pivots=enhanced-capabilities")
 	}
 
-	if strings.HasPrefix(ConnectionString, "Endpoint=sb") {
-		m.Log.Info("Detected EventHouse endpoint, using EventHouse output plugin")
+	if strings.HasPrefix(connectionString, "Endpoint=sb") {
+		m.Log.Info("Detected EventStream endpoint, using EventStream output plugin")
 
-		//Need discussion on it
+		// Need discussion on it
 		serializer := &json.Serializer{
 			TimestampUnits:  config.Duration(time.Nanosecond),
 			TimestampFormat: time.RFC3339Nano,
 		}
-		m.EventStreamConf.ConnectionString = ConnectionString
+		m.EventStreamConf.ConnectionString = connectionString
 		m.EventStreamConf.Log = m.Log
 		m.EventStreamConf.SetSerializer(serializer)
-		m.EventStreamConf.Init()
+		err := m.EventStreamConf.Init()
+		if err != nil {
+			return errors.New("error initializing EventStream plugin: " + err.Error())
+		}
 		m.FabricSinkService = m.EventStreamConf
-	} else if isKustoEndpoint(strings.ToLower(ConnectionString)) {
-		m.Log.Info("Detected Kusto endpoint, using Kusto output plugin")
-		//Setting up the AzureDataExplorer plugin initial properties
-		m.EventHouseConf.Endpoint = ConnectionString
+	} else if isKustoEndpoint(strings.ToLower(connectionString)) {
+		m.Log.Info("Detected EventHouse endpoint, using EventHouse output plugin")
+		// Setting up the AzureDataExplorer plugin initial properties
+		m.EventHouseConf.Endpoint = connectionString
 		m.EventHouseConf.Log = m.Log
-		m.EventHouseConf.Init()
+		err := m.EventHouseConf.Init()
+		if err != nil {
+			return errors.New("error initializing EventHouse plugin: " + err.Error())
+		}
 		m.FabricSinkService = m.EventHouseConf
 	} else {
-		return errors.New("invalid connection string. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities")
+		return errors.New("invalid connection string. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric" +
+			" for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/" +
+			"add-manage-eventstream-sources?pivots=enhanced-capabilities")
 	}
 	return nil
 }
@@ -97,7 +108,6 @@ func isKustoEndpoint(endpoint string) bool {
 }
 
 func init() {
-
 	outputs.Add("microsoft_fabric", func() telegraf.Output {
 		return &MicrosoftFabric{
 			EventHouseConf: &adx_commons.AzureDataExplorer{

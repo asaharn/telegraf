@@ -38,7 +38,8 @@ func TestConnect(t *testing.T) {
 
 			if tC.expectedPanic {
 				require.PanicsWithValue(t, tC.expectedError, func() {
-					plugin.Connect()
+					err := plugin.Connect()
+					require.NoError(t, err)
 				})
 			} else {
 				require.NotPanics(t, func() {
@@ -63,7 +64,8 @@ func TestWrite(t *testing.T) {
 		TimestampFormat: time.RFC3339Nano,
 	}
 	plugin.SetSerializer(serializer)
-	plugin.Init()
+	perr := plugin.Init()
+	require.NoError(t, perr)
 	err := plugin.Connect()
 	require.NoError(t, err)
 

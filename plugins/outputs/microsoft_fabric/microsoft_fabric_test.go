@@ -132,12 +132,18 @@ func TestMicrosoftFabric_Init(t *testing.T) {
 		{
 			name:             "Empty connection string",
 			connectionString: "",
-			expectedError:    "endpoint must not be empty. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities",
+			expectedError: "endpoint must not be empty. For Kusto refer :" +
+				"https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric" +
+				"for EventHouse refer :" +
+				"https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities",
 		},
 		{
 			name:             "Invalid connection string",
 			connectionString: "invalid_connection_string",
-			expectedError:    "invalid connection string. For Kusto refer : https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric for EventHouse refer : https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities",
+			expectedError: "invalid connection string. For Kusto refer : " +
+				"https://learn.microsoft.com/kusto/api/connection-strings/kusto?view=microsoft-fabric" +
+				" for EventHouse refer : " +
+				"https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-manage-eventstream-sources?pivots=enhanced-capabilities",
 		},
 		{
 			name:             "Valid EventHouse connection string",

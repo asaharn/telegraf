@@ -2,7 +2,6 @@ package eh_commons
 
 import (
 	"context"
-	_ "embed"
 	"time"
 
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
@@ -60,10 +59,6 @@ type EventHubs struct {
 	batchOptions []eventhub.BatchOption
 	serializer   telegraf.Serializer
 }
-
-const (
-	defaultRequestTimeout = time.Second * 30
-)
 
 func (*EventHubs) SampleConfig() string {
 	return sampleConfig

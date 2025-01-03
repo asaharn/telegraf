@@ -473,7 +473,8 @@ func TestConnect(t *testing.T) {
 
 			if tC.expectedPanic {
 				require.PanicsWithValue(t, tC.expectedError, func() {
-					plugin.Connect()
+					err := plugin.Connect()
+					require.NoError(t, err)
 				})
 			} else {
 				require.NotPanics(t, func() {
@@ -483,14 +484,6 @@ func TestConnect(t *testing.T) {
 					require.NotNil(t, plugin.metricIngestors)
 				})
 			}
-
-			// if tC.expectedError != "" {
-			// 	require.EqualError(t, err, tC.expectedError)
-			// } else {
-			// 	require.NoError(t, err)
-			// 	require.NotNil(t, plugin.kustoClient)
-			// 	require.NotNil(t, plugin.metricIngestors)
-			// }
 		})
 	}
 }
