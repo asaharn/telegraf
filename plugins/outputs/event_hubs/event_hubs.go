@@ -40,7 +40,7 @@ func (e *EventHubs) Init() error {
 		e.options.MaxBytes = uint64(e.MaxMessageSize)
 	}
 
-	return nil
+	return e.EventHubs.Init()
 }
 
 func (e *EventHubs) Connect() error {
