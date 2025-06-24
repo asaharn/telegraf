@@ -113,7 +113,7 @@ The corresponding table mapping would be like the following:
 #### Ingestion type
 
 > [!NOTE]
-> [Streaming ingestion][streaming] has to be enabled on ADX in case of
+> [Streaming ingestion][streaming] has to be enabled on Eventhouse in case of
 > `managed` operation.
 
 Refer to the following query below to check if streaming is enabled:
