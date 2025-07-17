@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-kusto-go/kusto/ingest"
+	"github.com/Azure/azure-kusto-go/azkustoingest"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
@@ -80,7 +80,7 @@ func (adx *AzureDataExplorer) writeTablePerMetric(metrics []telegraf.Metric) err
 	}
 
 	// Push the metrics for each table
-	format := ingest.FileFormat(ingest.JSON)
+	format := azkustoingest.FileFormat(azkustoingest.JSON)
 	for tableName, tableMetrics := range tableMetricGroups {
 		if err := adx.client.PushMetrics(format, tableName, tableMetrics); err != nil {
 			return err
@@ -102,7 +102,7 @@ func (adx *AzureDataExplorer) writeSingleTable(metrics []telegraf.Metric) error 
 	}
 
 	// push metrics to a single table
-	format := ingest.FileFormat(ingest.JSON)
+	format := azkustoingest.FileFormat(azkustoingest.JSON)
 	err := adx.client.PushMetrics(format, adx.TableName, metricsArray)
 	return err
 }

@@ -8,11 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-kusto-go/kusto"
+	"github.com/Azure/azure-kusto-go/azkustodata"
+	"github.com/Azure/azure-kusto-go/azkustodata/kql"
+	"github.com/Azure/azure-kusto-go/azkustoingest"
 	kustoerrors "github.com/Azure/azure-kusto-go/kusto/data/errors"
-	"github.com/Azure/azure-kusto-go/kusto/ingest"
-	"github.com/Azure/azure-kusto-go/kusto/kql"
-
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
 	"github.com/influxdata/telegraf/internal"
@@ -40,9 +39,10 @@ type Config struct {
 
 type Client struct {
 	cfg       *Config
-	client    *kusto.Client
-	ingestors map[string]ingest.Ingestor
+	client    *azkustodata.Client
+	ingestors map[string]azkustoingest.Ingestor
 	logger    telegraf.Logger
+	conn      *azkustodata.ConnectionStringBuilder
 }
 
 func (cfg *Config) NewClient(app string, log telegraf.Logger) (*Client, error) {
@@ -79,17 +79,18 @@ func (cfg *Config) NewClient(app string, log telegraf.Logger) (*Client, error) {
 		return nil, fmt.Errorf("unknown ingestion type %q", cfg.IngestionType)
 	}
 
-	conn := kusto.NewConnectionStringBuilder(cfg.Endpoint).WithDefaultAzureCredential()
+	conn := azkustodata.NewConnectionStringBuilder(cfg.Endpoint).WithDefaultAzureCredential()
 	conn.SetConnectorDetails("Telegraf", internal.ProductToken(), app, "", false, "")
-	client, err := kusto.New(conn)
+	client, err := azkustodata.New(conn)
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
 		cfg:       cfg,
-		ingestors: make(map[string]ingest.Ingestor),
+		ingestors: make(map[string]azkustoingest.Ingestor),
 		logger:    log,
 		client:    client,
+		conn:      conn,
 	}, nil
 }
 
@@ -116,7 +117,7 @@ func (adx *Client) Close() error {
 	return kustoerrors.GetCombinedError(errs...)
 }
 
-func (adx *Client) PushMetrics(format ingest.FileOption, tableName string, metrics []byte) error {
+func (adx *Client) PushMetrics(format azkustoingest.FileOption, tableName string, metrics []byte) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(adx.cfg.Timeout))
 	defer cancel()
@@ -126,7 +127,7 @@ func (adx *Client) PushMetrics(format ingest.FileOption, tableName string, metri
 	}
 
 	reader := bytes.NewReader(metrics)
-	mapping := ingest.IngestionMappingRef(tableName+"_mapping", ingest.JSON)
+	mapping := azkustoingest.IngestionMappingRef(tableName+"_mapping", azkustoingest.JSON)
 	if metricIngestor != nil {
 		if _, err := metricIngestor.FromReader(ctx, reader, format, mapping); err != nil {
 			return fmt.Errorf("sending ingestion request to Azure Data Explorer for table %q failed: %w", tableName, err)
@@ -135,7 +136,7 @@ func (adx *Client) PushMetrics(format ingest.FileOption, tableName string, metri
 	return nil
 }
 
-func (adx *Client) getMetricIngestor(ctx context.Context, tableName string) (ingest.Ingestor, error) {
+func (adx *Client) getMetricIngestor(ctx context.Context, tableName string) (azkustoingest.Ingestor, error) {
 	if ingestor := adx.ingestors[tableName]; ingestor != nil {
 		return ingestor, nil
 	}
@@ -151,13 +152,22 @@ func (adx *Client) getMetricIngestor(ctx context.Context, tableName string) (ing
 	}
 
 	// Create a new ingestor client for the table
-	var ingestor ingest.Ingestor
+	var ingestor azkustoingest.Ingestor
 	var err error
 	switch strings.ToLower(adx.cfg.IngestionType) {
 	case ManagedIngestion:
-		ingestor, err = ingest.NewManaged(adx.client, adx.cfg.Database, tableName)
+		ingestopts := []azkustoingest.Option{
+			azkustoingest.WithDefaultDatabase(adx.cfg.Database),
+			azkustoingest.WithDefaultTable(tableName),
+		}
+		ingestor, err = azkustoingest.NewManaged(adx.conn, ingestopts...)
 	case QueuedIngestion:
-		ingestor, err = ingest.New(adx.client, adx.cfg.Database, tableName, ingest.WithStaticBuffer(bufferSize, maxBuffers))
+		ingestopts := []azkustoingest.Option{
+			azkustoingest.WithDefaultDatabase(adx.cfg.Database),
+			azkustoingest.WithDefaultTable(tableName),
+			azkustoingest.WithStaticBuffer(bufferSize, maxBuffers),
+		}
+		ingestor, err = azkustoingest.New(adx.conn, ingestopts...)
 	default:
 		return nil, fmt.Errorf(`ingestion_type has to be one of %q or %q`, ManagedIngestion, QueuedIngestion)
 	}
@@ -169,14 +179,14 @@ func (adx *Client) getMetricIngestor(ctx context.Context, tableName string) (ing
 	return ingestor, nil
 }
 
-func createTableCommand(table string) kusto.Statement {
+func createTableCommand(table string) azkustodata.Statement {
 	builder := kql.New(`.create-merge table ['`).AddTable(table).AddLiteral(`'] `)
 	builder.AddLiteral(`(['fields']:dynamic, ['name']:string, ['tags']:dynamic, ['timestamp']:datetime);`)
 
 	return builder
 }
 
-func createTableMappingCommand(table string) kusto.Statement {
+func createTableMappingCommand(table string) azkustodata.Statement {
 	builder := kql.New(`.create-or-alter table ['`).AddTable(table).AddLiteral(`'] `)
 	builder.AddLiteral(`ingestion json mapping '`).AddTable(table + "_mapping").AddLiteral(`' `)
 	builder.AddLiteral(`'[{"column":"fields", `)
